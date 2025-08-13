@@ -1,22 +1,29 @@
 import { useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { SET_LIFT_STATUS } from "../graphql/mutations";
+import { GET_LIFTS } from "../graphql/queries"; // (opcjonalnie do refetchQueries)
 
 export default function LiftModal({ lift, onClose, onUpdate }) {
   const { register, handleSubmit } = useForm({
     defaultValues: { status: lift.status },
   });
-  const [setStatus, { loading, error }] = useMutation(SET_LIFT_STATUS);
+
+  const [setStatus, { loading, error }] = useMutation(SET_LIFT_STATUS, {
+    // to zapewni odświeżenie listy nawet bez onUpdate:
+    refetchQueries: [{ query: GET_LIFTS }],
+    awaitRefetchQueries: true,
+  });
 
   const onSubmit = async (data) => {
-    await setStatus({ variables: { id: lift.id, status: data.status } });
-    onUpdate();
-    onClose();
+    try {
+      await setStatus({ variables: { id: lift.id, status: data.status } });
+      onUpdate?.(); // jeśli przekazujesz refetch z listy
+      onClose();
+    } catch {}
   };
 
   return (
     <div className="drawer" onClick={onClose}>
-      {/* panel nie zamyka się po kliknięciu w niego */}
       <aside className="drawer-panel" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-header">
           <h4 className="drawer-title">{lift.name}</h4>
@@ -25,6 +32,7 @@ export default function LiftModal({ lift, onClose, onUpdate }) {
           </div>
         </div>
 
+        {/* PRZENOSIMY ACTIONS DO FORM */}
         <form onSubmit={handleSubmit(onSubmit)} className="drawer-body">
           <div className="field">
             <label className="label">Update Status</label>
@@ -62,22 +70,17 @@ export default function LiftModal({ lift, onClose, onUpdate }) {
           {loading && (
             <p style={{ color: "#6b7280", fontSize: 13 }}>Saving...</p>
           )}
-        </form>
 
-        <div className="drawer-actions">
-          <button type="button" className="btn btn-cancel" onClick={onClose}>
-            CANCEL
-          </button>
-          <button type="submit" form="__noop" style={{ display: "none" }} />
-          <button
-            onClick={() =>
-              document.querySelector(".drawer-body form")?.requestSubmit?.()
-            }
-            className="btn btn-save"
-            disabled={loading}>
-            SAVE
-          </button>
-        </div>
+          {/* <<< TERAZ W ŚRODKU FORM >>> */}
+          <div className="drawer-actions">
+            <button type="button" className="btn btn-cancel" onClick={onClose}>
+              CANCEL
+            </button>
+            <button type="submit" className="btn btn-save" disabled={loading}>
+              {loading ? "SAVING..." : "SAVE"}
+            </button>
+          </div>
+        </form>
       </aside>
     </div>
   );
