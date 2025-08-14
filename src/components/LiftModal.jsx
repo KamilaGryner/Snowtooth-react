@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { SET_LIFT_STATUS } from "../graphql/mutations";
-import { GET_LIFTS } from "../graphql/queries"; // (opcjonalnie do refetchQueries)
+import { GET_LIFTS } from "../graphql/queries";
 
 export default function LiftModal({ lift, onClose, onUpdate }) {
   const { register, handleSubmit } = useForm({
@@ -9,7 +9,7 @@ export default function LiftModal({ lift, onClose, onUpdate }) {
   });
 
   const [setStatus, { loading, error }] = useMutation(SET_LIFT_STATUS, {
-    // to zapewni odświeżenie listy nawet bez onUpdate:
+    
     refetchQueries: [{ query: GET_LIFTS }],
     awaitRefetchQueries: true,
   });
@@ -17,7 +17,7 @@ export default function LiftModal({ lift, onClose, onUpdate }) {
   const onSubmit = async (data) => {
     try {
       await setStatus({ variables: { id: lift.id, status: data.status } });
-      onUpdate?.(); // jeśli przekazujesz refetch z listy
+      onUpdate?.(); 
       onClose();
     } catch {}
   };
